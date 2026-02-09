@@ -6,9 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-from transformers.modeling_outputs import ImageClassifierOutput
-from transformers import PretrainedConfig, PreTrainedModel
+from vision_transformer.base import VisionTransformerBase
 
 
 class ViTEmbeddings(torch.nn.Module):
@@ -149,7 +147,6 @@ class ViTSelfAttention(nn.Module):
         query (nn.Linear): Linear projection layer for query computation.
         key (nn.Linear): Linear projection layer for key computation.
         value (nn.Linear): Linear projection layer for value computation.
-        output (nn.Linear): Output linear projection layer to combine attention heads.
         dropout (nn.Dropout): Dropout layer applied to attention weights.
         flash (bool): Flag indicating whether PyTorch's scaled_dot_product_attention
             is available for optimized computation.
@@ -648,7 +645,7 @@ class ViT(nn.Module):
         return sequence_output
 
 
-class ViTConfig(PretrainedConfig):
+class ViTConfig:
     def __init__(
         self,
         *,
@@ -672,30 +669,27 @@ class ViTConfig(PretrainedConfig):
         architectures: list[str] | None = None,
         id2label: dict[int, str] | None = None,
         label2id: dict[str, int] | None = None,
-        num_labels: int | None = None,
+        num_labels: int = 1000,
         problem_type: str | None = None,
         **kwargs,
     ):
-        super().__init__(
-            output_hidden_states=output_hidden_states,
-            output_attentions=output_attentions,
-            return_dict=return_dict,
-            dtype=dtype,
-            chunk_size_feed_forward=chunk_size_feed_forward,
-            is_encoder_decoder=is_encoder_decoder,
-            architectures=architectures,
-            id2label=id2label,
-            label2id=label2id,
-            num_labels=num_labels,
-            problem_type=problem_type,
-            **kwargs,
-        )
         self.image_size = image_size
         self.patch_size = patch_size
         self.num_channels = num_channels
         self.hidden_size = hidden_size
         self.intermediate_size = intermediate_size
         self.qkv_bias = qkv_bias
+        self.output_hidden_states = output_hidden_states
+        self.output_attentions = output_attentions
+        self.return_dict = return_dict
+        self.dtype = dtype
+        self.chunk_size_feed_forward = chunk_size_feed_forward
+        self.is_encoder_decoder = is_encoder_decoder
+        self.architectures = architectures
+        self.id2label = id2label
+        self.label2id = label2id
+        self.num_labels = num_labels
+        self.problem_type = problem_type
         self.layer_norm_eps = layer_norm_eps
         self.num_hidden_layers = num_hidden_layers
         self.hidden_dropout_prob = hidden_dropout_prob
@@ -705,7 +699,7 @@ class ViTConfig(PretrainedConfig):
         self.num_patches = (self.image_size // self.patch_size) ** 2
 
 
-class ViTForImageClassification(PreTrainedModel):
+class ViTForImageClassification(VisionTransformerBase):
     """
     ViTForImageClassification Module
     A Vision Transformer (ViT) model for image classification tasks. This module combines the core
@@ -794,6 +788,7 @@ class ViTForImageClassification(PreTrainedModel):
 
     def __init__(self, config: ViTConfig):
         super().__init__(config)
+        self.config = config
         self.vit = ViT(config)
         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
 
@@ -815,4 +810,4 @@ class ViTForImageClassification(PreTrainedModel):
         if labels is not None and self.loss_fn is not None:
             loss = self.loss_fn(logits, labels)
 
-        return ImageClassifierOutput(loss=loss, logits=logits)
+        return {"loss": loss, "logits": logits}
