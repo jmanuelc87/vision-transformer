@@ -189,6 +189,8 @@ def test_inference_vit_with_image():
     # Get predicted class
     predicted_class = output.logits.argmax(dim=-1).item()
 
+    assert predicted_class == 0
+
     log.info("Predicted Class: %s", predicted_class)
 
     assert isinstance(predicted_class, int)

@@ -244,12 +244,6 @@ class ViTSelfAttention(nn.Module):
             bias=config.qkv_bias,
         )
 
-        self.output = nn.Linear(
-            config.hidden_size,
-            config.hidden_size,
-            bias=config.qkv_bias,
-        )
-
         self.dropout = nn.Dropout(p=config.hidden_dropout_prob)
 
         self.flash = hasattr(torch.nn.functional, "scaled_dot_product_attention")
@@ -293,8 +287,6 @@ class ViTSelfAttention(nn.Module):
             x = self.scaled_dot_product_attention(q, k, v)
 
         x = self.combine(x)
-
-        x = self.output(x)
 
         return x
 
