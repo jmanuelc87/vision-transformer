@@ -122,7 +122,9 @@ def test_vit_for_image_classification():
     layer = ViTForImageClassification(config)
     inputs = torch.rand(size=(1, 3, 224, 224))
     output = layer(inputs)
-    assert output.logits.size(0) == 1 and output.logits.size(1) == config.num_labels
+    assert (
+        output["logits"].size(0) == 1 and output["logits"].size(1) == config.num_labels
+    )
 
 
 def test_vit_for_image_classification_with_labels():
@@ -130,8 +132,10 @@ def test_vit_for_image_classification_with_labels():
     inputs = torch.rand(size=(1, 3, 224, 224))
     labels = torch.tensor([0])
     output = layer(inputs, labels=labels)
-    assert output.loss is not None
-    assert output.logits.size(0) == 1 and output.logits.size(1) == config.num_labels
+    assert output["loss"] is not None
+    assert (
+        output["logits"].size(0) == 1 and output["logits"].size(1) == config.num_labels
+    )
 
 
 def test_vit_for_image_classification_batch():
@@ -140,8 +144,8 @@ def test_vit_for_image_classification_batch():
     inputs = torch.rand(size=(batch_size, 3, 224, 224))
     output = layer(inputs)
     assert (
-        output.logits.size(0) == batch_size
-        and output.logits.size(1) == config.num_labels
+        output["logits"].size(0) == batch_size
+        and output["logits"].size(1) == config.num_labels
     )
 
 
@@ -151,10 +155,10 @@ def test_vit_for_image_classification_batch_with_labels():
     inputs = torch.rand(size=(batch_size, 3, 224, 224))
     labels = torch.randint(0, config.num_labels, (batch_size,))
     output = layer(inputs, labels=labels)
-    assert output.loss is not None
+    assert output["loss"] is not None
     assert (
-        output.logits.size(0) == batch_size
-        and output.logits.size(1) == config.num_labels
+        output["logits"].size(0) == batch_size
+        and output["logits"].size(1) == config.num_labels
     )
 
 
@@ -166,7 +170,7 @@ def test_inference_vit():
 
     assert output is not None
 
-    log.info(output.logits.shape)
+    log.info(output["logits"].shape)
 
 
 def test_inference_vit_with_image():
@@ -182,16 +186,19 @@ def test_inference_vit_with_image():
     with torch.no_grad():
         output = model(test_image)
 
-    assert output.logits is not None
-    assert output.logits.shape[0] == 1
-    assert output.logits.shape[1] == model.config.num_labels
+    assert output["logits"] is not None
+    assert output["logits"].shape[0] == 1
+    assert output["logits"].shape[1] == model.config.num_labels
 
     # Get predicted class
-    predicted_class = output.logits.argmax(dim=-1).item()
+    predicted_class = output["logits"].argmax(dim=-1).item()
 
     assert predicted_class == 0
 
-    log.info("Predicted Class: %s", predicted_class)
+    # log.info(model.config["id2label"])
+
+    log.info("Predicted Index: %s", predicted_class)
+    log.info("Predicted Class: %s", model.config.id2label[f"{predicted_class}"])  # type: ignore
 
     assert isinstance(predicted_class, int)
     assert 0 <= predicted_class < model.config.num_labels
